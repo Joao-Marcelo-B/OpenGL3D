@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using Tao.FreeGlut;
@@ -7,7 +8,7 @@ using Tao.OpenGl;
 
 class Program
 {
-    static bool girarPas = false;
+    static bool girarPas = true;
     static float anguloPas = 0f;
     static float anguloLuz = 0;
 
@@ -24,13 +25,16 @@ class Program
     static List<ParticulaVento> particulas = new List<ParticulaVento>();
     static Random rand = new Random();
 
+    static List<(float x, float z)> posicoesTorres = new List<(float x, float z)>();
+
     static void Main(string[] args)
     {
         Glut.glutInit();
         Glut.glutInitDisplayMode(Glut.GLUT_DOUBLE | Glut.GLUT_RGB | Glut.GLUT_DEPTH);
-        Glut.glutInitWindowSize(800, 600);
+        Glut.glutInitWindowSize(1366, 768);
         Glut.glutCreateWindow("Projeto Final");
         Inicializa();
+        GerarPosicoesTorres(5, 10);
         InicializarParticulas(1000);
         Glut.glutDisplayFunc(DesenharCena);
         Glut.glutSpecialFunc(TecladoEspecial);
@@ -56,12 +60,54 @@ class Program
         Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, lightPos);
 
         DesenharChao();
-        DesenharTorre();
-        DesenharPas();
+        DesenharTorresComPas();
         DesenharSol();
         DesenharParticulasVento();
 
         Glut.glutSwapBuffers();
+    }
+
+    static void DesenharTorresComPas()
+    {
+        foreach (var pos in posicoesTorres)
+        {
+            Gl.glPushMatrix();
+            Gl.glTranslatef(pos.x, 0, pos.z);
+
+            // Torre
+            Gl.glPushMatrix();
+            Gl.glTranslatef(0.0f, 1.7f, 0.0f);
+            Gl.glScalef(0.3f, 3.0f, 0.3f);
+            Gl.glColor3f(0.6f, 0.6f, 0.6f);
+            DesenharCubo();
+            Gl.glPopMatrix();
+
+            // Pás
+            Gl.glPushMatrix();
+            Gl.glTranslatef(-0.2f, 3.0f, 0.0f);
+            Gl.glRotatef(-90, 0, 0, 1);
+            Gl.glRotatef(anguloPas, 0, 1, 0);
+            Gl.glColor3f(0.55f, 0.27f, 0.07f);
+
+            Gl.glPushMatrix();
+            Gl.glColor3f(0.8f, 0.8f, 0.8f);
+            Glut.glutSolidSphere(0.16f, 20, 20);
+            Gl.glPopMatrix();
+
+            for (int i = 0; i < 3; i++)
+            {
+                Gl.glPushMatrix();
+                Gl.glRotatef(i * 120, 0, 1, 0);
+                Gl.glTranslatef(0.8f, 0.0f, 0.0f);
+                Gl.glScalef(1.5f, 0.1f, 0.2f);
+                DesenharCubo();
+                Gl.glPopMatrix();
+            }
+
+            Gl.glPopMatrix();
+
+            Gl.glPopMatrix();
+        }
     }
 
     static void Inicializa()
@@ -71,9 +117,7 @@ class Program
         Gl.glEnable(Gl.GL_DEPTH_TEST);
         Gl.glEnable(Gl.GL_LIGHTING);
         Gl.glEnable(Gl.GL_LIGHT0);
-        Gl.glShadeModel(Gl.GL_SMOOTH);
         Gl.glEnable(Gl.GL_COLOR_MATERIAL);
-        Gl.glShadeModel(Gl.GL_SMOOTH);
 
         float[] lightAmbient = { 0.2f, 0.2f, 0.2f, 1.0f };
         float[] lightDiffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -137,20 +181,52 @@ class Program
         }
     }
 
+    static void GerarPosicoesTorres(int quantidade, float limite = 20)
+    {
+        posicoesTorres.Clear();
+
+        for (int i = 0; i < quantidade; i++)
+        {
+            float x = (float)(rand.NextDouble() * 2 * limite - limite);
+            float z = (float)(rand.NextDouble() * 2 * limite - limite);
+
+            posicoesTorres.Add((x, z));
+        }
+    }
+
     static void DesenharSol()
     {
+        float raio = 10f;
+        float altura = 8f;
+        float x = raio * (float)Math.Cos(anguloLuz * Math.PI / 180);
+        float z = raio * (float)Math.Sin(anguloLuz * Math.PI / 180);
+        float y = altura;
+
         Gl.glPushMatrix();
-        Gl.glTranslatef(5.0f, 8.0f, -5.0f);
+        Gl.glTranslatef(x, y, z);
+
+        float[] emissiveDay = { 1.0f, 1.0f, 0.0f, 1.0f };
+        float[] emissiveNight = { 1.0f, 1.0f, 1.0f, 1.0f };
 
         if (modoNoite)
+        {
+            Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_EMISSION, emissiveNight);
             Gl.glColor3f(1.0f, 1.0f, 1.0f);
+        }
         else
+        {
+            Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_EMISSION, emissiveDay);
             Gl.glColor3f(1.0f, 1.0f, 0.0f);
+        }
 
         Glut.glutSolidSphere(0.8f, 20, 20);
-        Gl.glPopMatrix();
 
+        float[] noEmission = { 0f, 0f, 0f, 1.0f };
+        Gl.glMaterialfv(Gl.GL_FRONT, Gl.GL_EMISSION, noEmission);
+
+        Gl.glPopMatrix();
     }
+
 
     static void TecladoNormal(byte tecla, int x, int y)
     {
@@ -228,6 +304,10 @@ class Program
             AlternarModoDiaNoite();
         }
 
+        anguloLuz += 0.5f;
+        if (anguloLuz >= 360f)
+            anguloLuz -= 360f;
+
         if (girarPas)
         {
             anguloPas += 1f;
@@ -276,37 +356,6 @@ class Program
         Gl.glDisable(Gl.GL_TEXTURE_2D);
     }
 
-    static void DesenharTorre()
-    {
-        Gl.glPushMatrix();
-        Gl.glTranslatef(0.0f, 1.5f, 0.0f);
-        Gl.glScalef(0.3f, 3.0f, 0.3f);
-        Gl.glColor3f(0.6f, 0.6f, 0.6f);
-        DesenharCubo();
-        Gl.glPopMatrix();
-    }
-
-    static void DesenharPas()
-    {
-        Gl.glPushMatrix();
-        Gl.glTranslatef(0.0f, 3.0f, 0.0f);
-        Gl.glRotatef(-90, 0, 0, 1);
-        Gl.glRotatef(anguloPas, 0, 1, 0);
-
-        Gl.glColor3f(0.55f, 0.27f, 0.07f);
-
-        for (int i = 0; i < 3; i++)
-        {
-            Gl.glPushMatrix();
-            Gl.glRotatef(i * 120, 0, 1, 0);
-            Gl.glTranslatef(0.8f, 0.0f, 0.0f);
-            Gl.glScalef(1.5f, 0.1f, 0.2f);
-            DesenharCubo();
-            Gl.glPopMatrix();
-        }
-
-        Gl.glPopMatrix();
-    }
 
     static void DesenharCubo()
     {
