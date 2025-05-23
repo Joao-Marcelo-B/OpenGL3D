@@ -21,9 +21,6 @@ class Program
 
     static uint texturaGrama;
 
-    static List<ParticulaVento> particulas = new List<ParticulaVento>();
-    static Random rand = new Random();
-
     static void CarregarTextura()
     {
         Bitmap bmp = new Bitmap("grama-mine.png");
@@ -180,76 +177,29 @@ class Program
         DesenharChao();
         DesenharTorre();
         DesenharPas();
-        DesenharParticulasVento();
         DesenharSol();
 
         Glut.glutSwapBuffers();
     }
 
-    static void DesenharParticulasVento()
-    {
-        Gl.glDisable(Gl.GL_LIGHTING);
-        Gl.glColor3f(0.7f, 0.8f, 1.0f);
-        Gl.glBegin(Gl.GL_LINES);
-        foreach (var p in particulas)
-        {
-            Gl.glVertex3f(p.x, p.y, p.z);
-            Gl.glVertex3f(p.x, p.y, p.z + 0.8f);
-        }
-        Gl.glEnd();
-
-        Gl.glEnable(Gl.GL_LIGHTING);
-    }
-
-
     static void AtualizarCena()
     {
-        cameraAngle += 0.2f;
-        if (cameraAngle >= 360f) cameraAngle -= 360f;
+        cameraAngle += 0.5f;
+        if (cameraAngle >= 360f)
+        {
+            cameraAngle -= 360f;
+            AlternarModoDiaNoite();
+        }
 
         if (girarPas)
         {
             anguloPas += 1f;
-            if (anguloPas >= 360f) anguloPas -= 360f;
-
-            // Criar nova partícula com alguma chance
-            if (rand.NextDouble() < 0.2) // 20% chance a cada frame
-            {
-                particulas.Add(new ParticulaVento(
-                    (float)(0.1 * (rand.NextDouble() - 0.5)), // x perto do centro das pás
-                    3.0f,                                     // y na altura das pás
-                    0.0f,                                     // z inicial
-                    0.05f + (float)rand.NextDouble() * 0.05f // velocidade z positiva
-                ));
-            }
-        }
-
-        // Atualizar partículas
-        particulas.RemoveAll(p => !p.ativa);
-        foreach (var p in particulas)
-        {
-            p.Atualizar();
+            if (anguloPas >= 360f)
+                anguloPas -= 360f;
         }
 
         Glut.glutPostRedisplay();
     }
-
-
-    //static void AtualizarCena()
-    //{
-    //    cameraAngle += 0.2f;
-    //    if (cameraAngle >= 360f)
-    //        cameraAngle -= 360f;
-
-    //    if (girarPas)
-    //    {
-    //        anguloPas += 1f;
-    //        if (anguloPas >= 360f)
-    //            anguloPas -= 360f;
-    //    }
-
-    //    Glut.glutPostRedisplay();
-    //}
 
     static void DesenharChao()
     {
@@ -300,32 +250,9 @@ class Program
         Gl.glPopMatrix();
     }
 
-
     static void DesenharCubo()
     {
         Gl.glColor3f(0.6f, 0.6f, 0.6f);
         Glut.glutSolidCube(1.0f);
-    }
-}
-
-class ParticulaVento
-{
-    public float x, y, z;
-    public float velocidadeZ;
-    public bool ativa;
-
-    public ParticulaVento(float x, float y, float z, float velocidadeZ)
-    {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.velocidadeZ = velocidadeZ;
-        this.ativa = true;
-    }
-
-    public void Atualizar()
-    {
-        z += velocidadeZ;
-        if (z > 5) ativa = false;
     }
 }
