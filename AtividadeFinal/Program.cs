@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using Tao.FreeGlut;
@@ -8,7 +7,7 @@ using Tao.OpenGl;
 
 class Program
 {
-    static bool girarPas = true;
+    static bool girarPas = false;
     static float anguloPas = 0f;
     static float anguloLuz = 0;
 
