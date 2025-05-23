@@ -21,6 +21,7 @@ class Program
     static float[] corCeuNoite = { 0.05f, 0.05f, 0.15f, 1.0f };
 
     static uint texturaGrama;
+    static uint texturaLateral;
 
     static List<ParticulaVento> particulas = new List<ParticulaVento>();
     static Random rand = new Random();
@@ -162,6 +163,17 @@ class Program
 
         bmp.UnlockBits(data);
         bmp.Dispose();
+
+        Bitmap bmpLateral = new Bitmap("lateral.png");
+        bmpLateral.RotateFlip(RotateFlipType.RotateNoneFlipY);
+        BitmapData dataLateral = bmpLateral.LockBits(new Rectangle(0, 0, bmpLateral.Width, bmpLateral.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        Gl.glGenTextures(1, out texturaLateral);
+        Gl.glBindTexture(Gl.GL_TEXTURE_2D, texturaLateral);
+        Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR);
+        Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
+        Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, Gl.GL_RGBA, dataLateral.Width, dataLateral.Height, 0, Gl.GL_BGRA, Gl.GL_UNSIGNED_BYTE, dataLateral.Scan0);
+        bmpLateral.UnlockBits(dataLateral);
+        bmpLateral.Dispose();
     }
 
     static void InicializarParticulas(int quantidade)
@@ -338,24 +350,68 @@ class Program
         Glut.glutPostRedisplay();
     }
 
-
     static void DesenharChao()
     {
+        float tamanho = 40f;
+        float altura = 30f;
+        float metade = tamanho / 2f;
+
+        // --- Face de cima com textura da grama ---
         Gl.glEnable(Gl.GL_TEXTURE_2D);
         Gl.glBindTexture(Gl.GL_TEXTURE_2D, texturaGrama);
 
         Gl.glBegin(Gl.GL_QUADS);
-        Gl.glNormal3f(0.0f, 1.0f, 0.0f);
+        Gl.glNormal3f(0, 1, 0);
+        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(-metade, 0, -metade);
+        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(metade, 0, -metade);
+        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(metade, 0, metade);
+        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(-metade, 0, metade);
+        Gl.glEnd();
 
-        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(-20.0f, 0.0f, -20.0f);
-        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(20.0f, 0.0f, -20.0f);
-        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(20.0f, 0.0f, 20.0f);
-        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(-20.0f, 0.0f, 20.0f);
+        // --- Outras faces com textura diferente ---
+        Gl.glBindTexture(Gl.GL_TEXTURE_2D, texturaLateral);
+
+        Gl.glBegin(Gl.GL_QUADS);
+
+        // Face de baixo
+        Gl.glNormal3f(0, -1, 0);
+        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(-metade, -altura, metade);
+        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(metade, -altura, metade);
+        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(metade, -altura, -metade);
+        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(-metade, -altura, -metade);
+
+        // Face da frente
+        Gl.glNormal3f(0, 0, 1);
+        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(-metade, 0, metade);
+        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(metade, 0, metade);
+        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(metade, -altura, metade);
+        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(-metade, -altura, metade);
+
+        // Face de trás
+        Gl.glNormal3f(0, 0, -1);
+        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(-metade, -altura, -metade);
+        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(metade, -altura, -metade);
+        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(metade, 0, -metade);
+        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(-metade, 0, -metade);
+
+        // Face esquerda
+        Gl.glNormal3f(-1, 0, 0);
+        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(-metade, 0, -metade);
+        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(-metade, 0, metade);
+        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(-metade, -altura, metade);
+        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(-metade, -altura, -metade);
+
+        // Face direita
+        Gl.glNormal3f(1, 0, 0);
+        Gl.glTexCoord2f(0, 0); Gl.glVertex3f(metade, 0, -metade);
+        Gl.glTexCoord2f(5, 0); Gl.glVertex3f(metade, 0, metade);
+        Gl.glTexCoord2f(5, 5); Gl.glVertex3f(metade, -altura, metade);
+        Gl.glTexCoord2f(0, 5); Gl.glVertex3f(metade, -altura, -metade);
+
         Gl.glEnd();
 
         Gl.glDisable(Gl.GL_TEXTURE_2D);
     }
-
 
     static void DesenharCubo()
     {
