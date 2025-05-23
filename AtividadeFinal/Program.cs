@@ -21,37 +21,17 @@ class Program
 
     static uint texturaGrama;
 
-    static void CarregarTextura()
-    {
-        Bitmap bmp = new Bitmap("grama-mine.png");
-        bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
-
-        System.Drawing.Imaging.BitmapData data = bmp.LockBits(
-            new Rectangle(0, 0, bmp.Width, bmp.Height),
-            ImageLockMode.ReadOnly,
-            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-        Gl.glGenTextures(1, out texturaGrama);
-        Gl.glBindTexture(Gl.GL_TEXTURE_2D, texturaGrama);
-
-        Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR);
-        Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
-
-        Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, Gl.GL_RGBA, data.Width, data.Height,
-            0, Gl.GL_BGRA, Gl.GL_UNSIGNED_BYTE, data.Scan0);
-
-        bmp.UnlockBits(data);
-        bmp.Dispose();
-    }
-
+    static List<ParticulaVento> particulas = new List<ParticulaVento>();
+    static Random rand = new Random();
 
     static void Main(string[] args)
     {
         Glut.glutInit();
         Glut.glutInitDisplayMode(Glut.GLUT_DOUBLE | Glut.GLUT_RGB | Glut.GLUT_DEPTH);
         Glut.glutInitWindowSize(800, 600);
-        Glut.glutCreateWindow("Cena 3D - Torre Eólica");
+        Glut.glutCreateWindow("Projeto Final");
         Inicializa();
+        InicializarParticulas(1000);
         Glut.glutDisplayFunc(DesenharCena);
         Glut.glutSpecialFunc(TecladoEspecial);
         Glut.glutKeyboardFunc(TecladoNormal);
@@ -59,19 +39,29 @@ class Program
         Glut.glutMainLoop();
     }
 
-    static void DesenharSol()
+    static void DesenharCena()
     {
-        Gl.glPushMatrix();
-        Gl.glTranslatef(5.0f, 8.0f, -5.0f);
+        Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
+        Gl.glLoadIdentity();
 
-        if (modoNoite)
-            Gl.glColor3f(1.0f, 1.0f, 1.0f);
-        else
-            Gl.glColor3f(1.0f, 1.0f, 0.0f);
+        float camX = (float)(cameraDistance * Math.Sin(cameraAngle * Math.PI / 180));
+        float camZ = (float)(cameraDistance * Math.Cos(cameraAngle * Math.PI / 180));
+        Glu.gluLookAt(camX, cameraHeight, camZ, 0, 0, 0, 0, 1, 0);
 
-        Glut.glutSolidSphere(0.8f, 20, 20);
-        Gl.glPopMatrix();
+        float luzX = 10f * (float)Math.Cos(anguloLuz * Math.PI / 180);
+        float luzY = 8f;
+        float luzZ = 10f * (float)Math.Sin(anguloLuz * Math.PI / 180);
 
+        float[] lightPos = { luzX, luzY, luzZ, 1.0f };
+        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, lightPos);
+
+        DesenharChao();
+        DesenharTorre();
+        DesenharPas();
+        DesenharSol();
+        DesenharParticulasVento();
+
+        Glut.glutSwapBuffers();
     }
 
     static void Inicializa()
@@ -105,6 +95,61 @@ class Program
         Gl.glLoadIdentity();
         Glu.gluPerspective(45, 800.0 / 600.0, 1.0, 100.0);
         Gl.glMatrixMode(Gl.GL_MODELVIEW);
+    }
+
+    static void CarregarTextura()
+    {
+        Bitmap bmp = new Bitmap("grama-mine.png");
+        bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+        BitmapData data = bmp.LockBits(
+            new Rectangle(0, 0, bmp.Width, bmp.Height),
+            ImageLockMode.ReadOnly,
+            PixelFormat.Format32bppArgb);
+
+        Gl.glGenTextures(1, out texturaGrama);
+        Gl.glBindTexture(Gl.GL_TEXTURE_2D, texturaGrama);
+
+        Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR);
+        Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
+
+        Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, Gl.GL_RGBA, data.Width, data.Height,
+            0, Gl.GL_BGRA, Gl.GL_UNSIGNED_BYTE, data.Scan0);
+
+        bmp.UnlockBits(data);
+        bmp.Dispose();
+    }
+
+    static void InicializarParticulas(int quantidade)
+    {
+        particulas.Clear();
+
+        for (int i = 0; i < quantidade; i++)
+        {
+            float x = (float)(rand.NextDouble() * 40 - 20);
+            float y = (float)(1 + rand.NextDouble() * 3);
+            float z = (float)(rand.NextDouble() * 40 - 20);
+
+            float velX = 0.1f;
+            float velZ = 0.0f;
+
+            particulas.Add(new ParticulaVento(x, y, z, velX, velZ));
+        }
+    }
+
+    static void DesenharSol()
+    {
+        Gl.glPushMatrix();
+        Gl.glTranslatef(5.0f, 8.0f, -5.0f);
+
+        if (modoNoite)
+            Gl.glColor3f(1.0f, 1.0f, 1.0f);
+        else
+            Gl.glColor3f(1.0f, 1.0f, 0.0f);
+
+        Glut.glutSolidSphere(0.8f, 20, 20);
+        Gl.glPopMatrix();
+
     }
 
     static void TecladoNormal(byte tecla, int x, int y)
@@ -158,33 +203,25 @@ class Program
         Glut.glutPostRedisplay();
     }
 
-    static void DesenharCena()
+    static void DesenharParticulasVento()
     {
-        Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
-        Gl.glLoadIdentity();
+        Gl.glDisable(Gl.GL_LIGHTING);
+        Gl.glColor3f(0.7f, 0.8f, 1.0f);
 
-        float camX = (float)(cameraDistance * Math.Sin(cameraAngle * Math.PI / 180));
-        float camZ = (float)(cameraDistance * Math.Cos(cameraAngle * Math.PI / 180));
-        Glu.gluLookAt(camX, cameraHeight, camZ, 0, 0, 0, 0, 1, 0);
+        Gl.glBegin(Gl.GL_LINES);
+        foreach (var p in particulas)
+        {
+            Gl.glVertex3f(p.x, p.y, p.z);
+            Gl.glVertex3f(p.x + p.velocidadeX * 3, p.y, p.z + p.velocidadeZ * 3);
+        }
+        Gl.glEnd();
 
-        float luzX = 10f * (float)Math.Cos(anguloLuz * Math.PI / 180);
-        float luzY = 8f;
-        float luzZ = 10f * (float)Math.Sin(anguloLuz * Math.PI / 180);
-
-        float[] lightPos = { luzX, luzY, luzZ, 1.0f };
-        Gl.glLightfv(Gl.GL_LIGHT0, Gl.GL_POSITION, lightPos);
-
-        DesenharChao();
-        DesenharTorre();
-        DesenharPas();
-        DesenharSol();
-
-        Glut.glutSwapBuffers();
+        Gl.glEnable(Gl.GL_LIGHTING);
     }
 
     static void AtualizarCena()
     {
-        cameraAngle += 0.5f;
+        cameraAngle += 0.2f;
         if (cameraAngle >= 360f)
         {
             cameraAngle -= 360f;
@@ -196,10 +233,31 @@ class Program
             anguloPas += 1f;
             if (anguloPas >= 360f)
                 anguloPas -= 360f;
+
+            foreach (var p in particulas)
+            {
+                p.Atualizar();
+            }
+
+            if (rand.NextDouble() < 0.2)
+            {
+                particulas.Add(new ParticulaVento(
+                    (float)(rand.NextDouble() * 40 - 20),
+                    (float)(1 + rand.NextDouble() * 3),
+                    (float)(rand.NextDouble() * 40 - 20),
+                    0.1f, 0.0f));
+            }
+
+            particulas.RemoveAll(p => !p.ativa);
+        }
+        else
+        {
+            particulas.Clear();
         }
 
         Glut.glutPostRedisplay();
     }
+
 
     static void DesenharChao()
     {
@@ -254,5 +312,33 @@ class Program
     {
         Gl.glColor3f(0.6f, 0.6f, 0.6f);
         Glut.glutSolidCube(1.0f);
+    }
+}
+
+class ParticulaVento
+{
+    public float x, y, z;
+    public float velocidadeX, velocidadeZ;
+    public bool ativa;
+
+    public ParticulaVento(float x, float y, float z, float velX, float velZ)
+    {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.velocidadeX = velX;
+        this.velocidadeZ = velZ;
+        this.ativa = true;
+    }
+
+    public void Atualizar()
+    {
+        x += velocidadeX;
+        z += velocidadeZ;
+
+        if (x > 20) x = -20;
+        if (x < -20) x = 20;
+        if (z > 20) z = -20;
+        if (z < -20) z = 20;
     }
 }
